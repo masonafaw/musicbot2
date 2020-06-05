@@ -1,0 +1,4 @@
+# Add your discord bot token below, between the quotation marks
+# Find the token of your bot on https://discordapp.com/developers/applications/me
+# Tutorial: https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token
+discordToken: ""

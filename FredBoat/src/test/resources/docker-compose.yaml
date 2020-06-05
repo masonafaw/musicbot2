@@ -1,0 +1,68 @@
+version: '3'
+services:
+  db:
+    image: fredboat/postgres:latest
+    ports:
+      - 127.0.0.1:5432:5432
+
+  quarterdeck:
+    image: fredboat/quarterdeck:dev-v1
+    depends_on:
+      - db
+    ports:
+      - 127.0.0.1:4269:4269
+    entrypoint:
+      - java
+      - -Xmx128m
+      - -jar
+      - Quarterdeck.jar
+      - >
+       --spring.application.json={"security": {"admins": [{"name": "test", "pass": "test"}]}}
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - 127.0.0.1:5672:5672
+      - 127.0.0.1:15672:15672
+
+  lavalink:
+    image: fredboat/lavalink:dev
+    ports:
+      - 127.0.0.1:2333:2333
+    entrypoint:
+      - java
+      - -Xmx256m
+      - -jar
+      - Lavalink.jar
+      - |-
+        --spring.application.json={
+          "server": {
+            "port": 2333,
+            "address": "0.0.0.0"
+          },
+          "lavalink": {
+            "server": {
+              "password": "youshallnotpass",
+              "sources": {
+                "youtube": true,
+                "bandcamp": true,
+                "soundcloud": true,
+                "twitch": true,
+                "vimeo": true,
+                "mixer": true,
+                "http": true,
+                "local": false
+              },
+              "sentryDsn": "",
+              "bufferDurationMs": 400,
+              "youtubePlaylistLoadLimit": 600,
+              "gc-warnings": true
+            }
+          },
+          "metrics": {
+            "prometheus": {
+              "enabled": false,
+              "endpoint": "/metrics"
+            }
+          }
+        }

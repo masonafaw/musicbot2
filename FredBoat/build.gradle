@@ -1,0 +1,109 @@
+apply plugin: 'com.gorylenko.gradle-git-properties'
+apply plugin: 'kotlin'
+apply plugin: 'application'
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: "kotlin-spring"
+
+description = 'FredBoat Discord Music Bot'
+mainClassName = "fredboat.main.Launcher"
+version = rootProject.version
+ext {
+    moduleName = 'FredBoat'
+}
+
+bootRun {
+    //compiling tests during bootRun increases the likelihood of catching broken tests locally instead of on the CI
+    dependsOn compileTestJava
+
+    //pass in custom jvm args
+    // source: https://stackoverflow.com/a/25079415
+    // example: ./gradlew bootRun -PjvmArgs="--illegal-access=debug -Dwhatever=value"
+    if (project.hasProperty('jvmArgs')) {
+        jvmArgs project.jvmArgs.split('\\s+')
+    }
+}
+
+bootJar {
+    archiveName = "FredBoat.jar"
+    doLast {
+        //copies the jar into a place where the Dockerfile can find it easily (and users maybe too)
+        copy {
+            from 'build/libs/FredBoat.jar'
+            into '.'
+        }
+    }
+}
+
+dependencies {
+    compile project(':Shared')
+    compile group: 'com.github.FredBoat.sentinel', name: 'sentinel-shared', version: sentinelVersion
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+    compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
+
+    if (System.getenv('dev') == 'true') {
+        compile(group: 'lavalink', name: 'Lavalink-Client', version: '-SNAPSHOT')
+    } else {
+        //production
+        compile(group: 'com.github.FredBoat', name: 'Lavalink-Client', version: lavalinkVersion)
+    }
+
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-webflux', version: springBootVersion
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+    compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-reactor', version: '1.0.1'
+    compile group: 'org.springframework.amqp', name: 'spring-rabbit', version: amqpVersion
+    compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonKotlinVersion
+
+    compile group: 'org.togglz', name: 'togglz-core', version: togglzVersion
+    compile group: 'org.togglz', name: 'togglz-slf4j', version: togglzVersion
+    compile group: 'org.togglz', name: 'togglz-spring-boot-starter', version: togglzVersion
+    compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: bucket4jVersion
+
+    //tests
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junitVersion
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junitVersion
+    // To avoid compiler warnings about @API annotations in JUnit code.
+    testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: apiGuardianVersion
+    //required for the docker compose rule https://github.com/palantir/docker-compose-rule/issues/224
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-migrationsupport', version: junitVersion
+    //allows us to fire up docker containers to test with, for example our postgres database
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: dockerComposeRuleVersion
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
+    testCompile group: 'org.postgresql', name: 'postgresql', version: postgresJdbcVersion
+    optional group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: springBootVersion
+
+    /* Explicitly set these, instead of getting outdated transitive ones */
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk7', version: kotlinVersion
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlinVersion
+}
+
+//required by spring boot configuration processor
+compileJava.dependsOn(processResources)
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+processResources {
+    //inject values into app.properties
+    filesMatching("**/app.properties") {
+        filter ReplaceTokens, tokens: [
+                "project.version"   : project.version,
+                "project.groupId"   : project.group,
+                "project.artifactId": project.ext.moduleName,
+                "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'DEV')
+        ]
+    }
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}

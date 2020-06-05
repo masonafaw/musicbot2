@@ -1,0 +1,12 @@
+[Unit]
+Description=FredBoat
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/YOUR_USER/fredboat
+ExecStart=/usr/bin/java -jar FredBoat.jar
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

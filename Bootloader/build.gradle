@@ -1,0 +1,16 @@
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+description = 'Runs and updates FredBoat'
+mainClassName = "fredboat.bootloader.Bootloader"
+version '1.0'
+ext {
+    moduleName = 'Bootloader'
+}
+dependencies {
+    compile project(':Shared')
+}
+
+shadowJar {
+    archiveName = "Bootloader.jar"
+}
